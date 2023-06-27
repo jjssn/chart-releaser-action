@@ -32,6 +32,10 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: true
+  distribute_charts:
+    description: "Push charts to a remote registry (OCI)"
+    required: false
+    default: false
 
 runs:
   using: composite
@@ -74,6 +78,10 @@ runs:
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
             args+=(--mark-as-latest "${{ inputs.mark_as_latest }}")
+        fi
+
+        if [[ -n "${{ inputs.distribute_charts }}" ]]; then
+            args+=(--distribute-charts "${{ inputs.distribute_charts }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

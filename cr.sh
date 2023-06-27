@@ -24,17 +24,18 @@ show_help() {
 cat << EOF
 Usage: $(basename "$0") <options>
 
-    -h, --help               Display help
-    -v, --version            The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
-        --config             The path to the chart-releaser config file
-    -d, --charts-dir         The charts directory (default: charts)
-    -o, --owner              The repo owner
-    -r, --repo               The repo name
-    -n, --install-dir        The Path to install the cr tool
-    -i, --install-only       Just install the cr tool
-    -s, --skip-packaging     Skip the packaging step (run your own packaging before using the releaser)
-        --skip-existing      Skip package upload if release exists
-    -l, --mark-as-latest     Mark the created GitHub release as 'latest' (default: true)
+    -h, --help                  Display help
+    -v, --version               The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
+        --config                The path to the chart-releaser config file
+    -d, --charts-dir            The charts directory (default: charts)
+    -o, --owner                 The repo owner
+    -r, --repo                  The repo name
+    -n, --install-dir           The Path to install the cr tool
+    -i, --install-only          Just install the cr tool
+    -s, --skip-packaging        Skip the packaging step (run your own packaging before using the releaser)
+        --skip-existing         Skip package upload if release exists
+    -l, --mark-as-latest        Mark the created GitHub release as 'latest' (default: true)
+        --distribute-charts     Push charts to a remote registry (OCI)
 EOF
 }
 
@@ -49,6 +50,7 @@ main() {
     local skip_packaging=
     local skip_existing=
     local mark_as_latest=true
+    local distribute_charts=   
 
     parse_command_line "$@"
 
@@ -76,9 +78,14 @@ main() {
             rm -rf .cr-index
             mkdir -p .cr-index
 
+            if [[ $distribute_charts ]]; then
+                remote_registry_login
+            fi
+
             for chart in "${changed_charts[@]}"; do
                 if [[ -d "$chart" ]]; then
                     package_chart "$chart"
+                    remote_registry_push "$chart"
                 else
                     echo "Chart '$chart' no longer exists in repo. Skipping it..."
                 fi
@@ -187,6 +194,12 @@ parse_command_line() {
                     shift
                 fi
                 ;;
+            --distribute-charts)
+                if [[ -n "${2:-}" ]]; then
+                    distribute_charts="$2"
+                    shift
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -217,6 +230,15 @@ parse_command_line() {
         echo "Will install cr tool and not run it..."
         install_chart_releaser
         exit 0
+    fi
+
+    if [[ -n "$distribute_charts" ]]; then
+        echo "Will connect to remote registry with environment variables 'REMOTE_REGISTRY_URL', 'REMOTE_REGISTRY_USERNAME', 'REMOTE_REGISTRY_PASSWORD'"
+        [[ -n "${REMOTE_REGISTRY_URL:?Error: Environment variable REMOTE_REGISTRY_URL must be set}" ]] || exit 1
+        REMOTE_REGISTRY_URL="${REMOTE_REGISTRY_URL#*://}"
+        [[ -n "${REMOTE_REGISTRY_USERNAME:?Error: Environment variable REMOTE_REGISTRY_USERNAME must be set}" ]] || exit 1
+        [[ -n "${REMOTE_REGISTRY_PASSWORD:?Error: Environment variable REMOTE_REGISTRY_PASSWORD must be set}" ]] || exit 1
+        remote_registry_login
     fi
 }
 
@@ -308,5 +330,26 @@ update_index() {
     echo 'Updating charts repo index...'
     cr index "${args[@]}"
 }
+remote_registry_login() {
+    echo "Logging in to the remote registry '$REMOTE_REGISTRY_URL'..."
+    if helm registry login "$REMOTE_REGISTRY_URL" --username "$REMOTE_REGISTRY_USERNAME " --password "$REMOTE_REGISTRY_PASSWORD"; then
+        echo "Login to the remote registry successful."
+    else
+        echo "Failed to login to the remote registry."
+        exit 1
+    fi
+}
+remote_registry_push() {
+    local chart="$1"
+    local registry_url="$REMOTE_REGISTRY_URL"
+    local chart_file=$(ls $(pwd)/.cr-release-packages/$(basename "$chart")-*.tgz)
 
+    if [[ ! -e $chart_file ]]; then
+        echo "ERROR: Chart file '$chart_file' not found." >&2
+        exit 1
+    fi
+
+    echo "Pushing chart '$chart_file' to remote registry oci://'$registry_url'/helm..."
+    helm push "$chart_file"  "oci://$registry_url/helm"
+}
 main "$@"
