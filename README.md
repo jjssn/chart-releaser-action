@@ -20,6 +20,9 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `charts_dir`: The charts directory
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
+- `distribute_charts`: When you set this to `true`, it will push charts to a remote registry (OCI). See distribute charts example furher down.
+
+
 
 ### Environment variables
 
@@ -82,6 +85,36 @@ It does this – during every push to `main` – by checking each chart in your 
   env:
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
+
+#### Example to distribute charts
+
+`workflow.yml`:
+
+```yaml
+  - name: Run chart-releaser
+    uses: jjssn/chart-releaser-action@main
+    with:
+      distribute_charts: true
+    env:
+      CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      REMOTE_REGISTRY_URL: "${{ secrets.REMOTE_REGISTRY_URL }}"
+      REMOTE_REGISTRY_USERNAME: "${{ secrets.REMOTE_REGISTRY_USERNAME }}"
+      REMOTE_REGISTRY_PASSWORD: "${{ secrets.REMOTE_REGISTRY_PASSWORD }}"
+```
+1. Open your repository in GitHub.
+
+2. Navigate to the **Settings** tab at the top-right corner of the repository.
+
+3. In the left sidebar, click on **Secrets.** 
+
+4. Click on the **New repository secret** button.
+   
+   Add secret **REMOTE_REGISTRY_URL**, **REMOTE_REGISTRY_USERNAME** and **REMOTE_REGISTRY_PASSWORD**
+
+```bash
+helm push "$chart_file"  "oci://$registry_url/helm"
+```
+The raw command provided above demonstrates how the distribute function pushes a chart. Currently, it adds 'helm' after the specified registry URL. The 'chart_file' parameter refers to the packaged .tgz chart file, which will be automatically obtained.
 
 `cr.yaml`:
 
