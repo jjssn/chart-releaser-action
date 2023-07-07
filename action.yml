@@ -35,7 +35,6 @@ inputs:
   distribute_charts:
     description: "Push charts to a remote registry (OCI)"
     required: false
-    default: false
 
 runs:
   using: composite

@@ -78,7 +78,7 @@ main() {
             rm -rf .cr-index
             mkdir -p .cr-index
 
-            if [[ $distribute_charts ]]; then
+            if [[ -n "$distribute_charts" ]]; then
                 remote_registry_login
             fi
 
@@ -233,7 +233,7 @@ parse_command_line() {
     fi
 
     if [[ -n "$distribute_charts" ]]; then
-        echo "Will connect to remote registry with environment variables 'REMOTE_REGISTRY_URL', 'REMOTE_REGISTRY_USERNAME', 'REMOTE_REGISTRY_PASSWORD'"
+        echo "--distribute-charts is set, validating environment variables 'REMOTE_REGISTRY_URL', 'REMOTE_REGISTRY_USERNAME', 'REMOTE_REGISTRY_PASSWORD'"
         [[ -n "${REMOTE_REGISTRY_URL:?Error: Environment variable REMOTE_REGISTRY_URL must be set}" ]] || exit 1
         REMOTE_REGISTRY_URL="${REMOTE_REGISTRY_URL#*://}"
         [[ -n "${REMOTE_REGISTRY_USERNAME:?Error: Environment variable REMOTE_REGISTRY_USERNAME must be set}" ]] || exit 1
