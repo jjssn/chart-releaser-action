@@ -238,7 +238,6 @@ parse_command_line() {
         REMOTE_REGISTRY_URL="${REMOTE_REGISTRY_URL#*://}"
         [[ -n "${REMOTE_REGISTRY_USERNAME:?Error: Environment variable REMOTE_REGISTRY_USERNAME must be set}" ]] || exit 1
         [[ -n "${REMOTE_REGISTRY_PASSWORD:?Error: Environment variable REMOTE_REGISTRY_PASSWORD must be set}" ]] || exit 1
-        remote_registry_login
     fi
 }
 
@@ -332,7 +331,7 @@ update_index() {
 }
 remote_registry_login() {
     echo "Logging in to the remote registry '$REMOTE_REGISTRY_URL'..."
-    if helm registry login "$REMOTE_REGISTRY_URL" --username "$REMOTE_REGISTRY_USERNAME " --password "$REMOTE_REGISTRY_PASSWORD"; then
+    if echo "$REMOTE_REGISTRY_PASSWORD" | helm registry login "$REMOTE_REGISTRY_URL" --username "$REMOTE_REGISTRY_USERNAME " --password-stdin; then
         echo "Login to the remote registry successful."
     else
         echo "Failed to login to the remote registry."
