@@ -330,8 +330,8 @@ update_index() {
     cr index "${args[@]}"
 }
 remote_registry_login() {
-    echo "Logging in to the remote registry '$REMOTE_REGISTRY_URL'..."
-    if echo "$REMOTE_REGISTRY_PASSWORD" | helm registry login "$REMOTE_REGISTRY_URL" --username "$REMOTE_REGISTRY_USERNAME " --password-stdin; then
+    echo "Logging in to the remote registry '${REMOTE_REGISTRY_URL%%/*}'..."
+    if echo "$REMOTE_REGISTRY_PASSWORD" | helm registry login "${REMOTE_REGISTRY_URL%%/*}" --username "$REMOTE_REGISTRY_USERNAME " --password-stdin; then
         echo "Login to the remote registry successful."
     else
         echo "Failed to login to the remote registry."
@@ -348,7 +348,7 @@ remote_registry_push() {
         exit 1
     fi
 
-    echo "Pushing chart '$chart_file' to remote registry oci://'$registry_url'/helm..."
-    helm push "$chart_file"  "oci://$registry_url/helm"
+    echo "Pushing chart '$chart_file' to remote registry oci://'$registry_url'..."
+    helm push "$chart_file"  "oci://$registry_url"
 }
 main "$@"
